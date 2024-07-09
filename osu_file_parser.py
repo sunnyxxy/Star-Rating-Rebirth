@@ -70,6 +70,8 @@ class parser:
         if "CircleSize:" in line:
             temp = line.strip()
             column_count = temp[-1]
+            if column_count=='0':
+                column_count='10'
             # line = f.__next__()
             # print(line, end='')
         return string_to_int(column_count)
