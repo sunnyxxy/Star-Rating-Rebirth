@@ -10,7 +10,7 @@ import math
 def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     lambda_n = 4
     lambda_1 = 0.11
-    lambda_3 = 8
+    lambda_3 = 24
     p = osu_parser.parser(file_path)
     p.process()
     p = p.get_parsed_data()
@@ -164,17 +164,17 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     for i in range(len(note_seq)-1):
         delta = 0.001*(note_seq[i+1][1] - note_seq[i][1])
         if delta<10**(-9):
-            P[note_seq[i][1]]+=(0.02*(4/x-lambda_3))**(1/4)
+            P[note_seq[i][1]]+=1000*(0.02*(4/x-lambda_3))**(1/4)
         else:
             h_l = note_seq[i][1]
             h_r = note_seq[i+1][1]
             v = 1 + lambda_2 * 0.001*sum(LN_bodies[h_l:h_r])
             if delta<2*x/3:
                 for s in range(h_l, h_r):
-                    P[s]+= delta**(-1) * (0.08*(delta)**(-1) * (1 - lambda_3 * x**(-1)*(delta - x/2)**2))**(1/4)*b(delta)*v
+                    P[s]+= delta**(-1) * (0.08*x**(-1) * (1 - lambda_3 * x**(-1)*(delta - x/2)**2))**(1/4)*b(delta)*v
             else:
                 for s in range(h_l, h_r):
-                    P[s]+= delta**(-1) * (0.08*(delta)**(-1) * (1 - lambda_3*x**(-1)*(x/6)**2))**(1/4)*b(delta)*v
+                    P[s]+= delta**(-1) * (0.08*x**(-1) * (1 - lambda_3*x**(-1)*(x/6)**2))**(1/4)*b(delta)*v
 
     Pbar = smooth(P)
             
@@ -240,14 +240,16 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     df = pd.DataFrame({'Jbar': Jbar, 'Xbar': Xbar, 'Pbar': Pbar, 'Abar': Abar, 'Rbar': Rbar, 'C': C})
     df = df.clip(lower=0)
 
-    df['S'] = ((w_0 * (df['Abar']**(1/2) * df['Jbar'])**1.5) + (1-w_0) * (df['Abar']**(2/3) * (df['Pbar'] + df['Rbar']))**1.5)**(2/3)
+    df['S'] = ((w_0 * (df['Abar']**(1/2) * df['Jbar'])**1.5) + (1-w_0) * (df['Abar']**(2/3) * (0.8*df['Pbar'] + df['Rbar']))**1.5)**(2/3)
     df['T'] = (df['Xbar'])/(df['Xbar']+df['S']+1)
     df['D'] = w_1*df['S']**(1/2)*df['T']**p_1+df['S']*(w_2)
 
     SR = (sum(df['D']**lambda_n*df['C'])/sum(df['C']))**(1/lambda_n)
     SR = SR**(p_0)/8**p_0*8
     SR *= (len(note_seq)+0.5*len(LN_seq))/(len(note_seq)+0.5*len(LN_seq)+60)
-    SR *= 0.88+0.03*K
+    if SR<=2:
+        SR=(SR*2)**0.5
+    # SR *= 0.88+0.03*K
 
     return SR
     # Visualisation
