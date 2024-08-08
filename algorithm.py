@@ -124,8 +124,8 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             notes_in_pair = list(heapq.merge(note_seq_by_column[k-1], note_seq_by_column[k], key=lambda x: x[1]))
         for i in range(len(notes_in_pair)-1):
             delta = 0.001*(notes_in_pair[i][1] - notes_in_pair[i-1][1])
-            val = 0.1*max(x, delta)**(-2)
-            for s in range(notes_in_pair[i][1], notes_in_pair[i+1][1]):
+            val = 0.16*max(x, delta)**(-2)
+            for s in range(notes_in_pair[i-1][1], notes_in_pair[i][1]):
                 X_ks[k][s] = val
     cross_matrix = [
         [-1],
@@ -146,7 +146,6 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
         X.append(sum(a * b for a, b in zip([x[s] for x in X_ks], cross_matrix[K])))
 
     Xbar = smooth(X)
-
 
     # Section 2.5
     P = [0 for _ in range(T)]
@@ -240,8 +239,8 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     df = pd.DataFrame({'Jbar': Jbar, 'Xbar': Xbar, 'Pbar': Pbar, 'Abar': Abar, 'Rbar': Rbar, 'C': C})
     df = df.clip(lower=0)
 
-    df['S'] = ((w_0 * (df['Abar']**(1/2) * df['Jbar'])**1.5) + (1-w_0) * (df['Abar']**(2/3) * (0.8*df['Pbar'] + df['Rbar']))**1.5)**(2/3)
-    df['T'] = (df['Xbar'])/(df['Xbar']+df['S']+1)
+    df['S'] = ((w_0 * (df['Abar']**(3/K) * df['Jbar'])**1.5) + (1-w_0) * (df['Abar']**(2/3) * (0.8*df['Pbar'] + df['Rbar']))**1.5)**(2/3)
+    df['T'] = (df['Abar']**(3/K)*df['Xbar'])/(df['Xbar']+df['S']+1)
     df['D'] = w_1*df['S']**(1/2)*df['T']**p_1+df['S']*(w_2)
 
     SR = (sum(df['D']**lambda_n*df['C'])/sum(df['C']))**(1/lambda_n)
@@ -249,7 +248,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     SR *= (len(note_seq)+0.5*len(LN_seq))/(len(note_seq)+0.5*len(LN_seq)+60)
     if SR<=2:
         SR=(SR*2)**0.5
-    # SR *= 0.88+0.03*K
+    SR *= 0.92+0.02*K
 
     return SR
     # Visualisation
