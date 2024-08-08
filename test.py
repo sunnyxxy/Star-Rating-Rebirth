@@ -3,7 +3,7 @@ import algorithm
 
 folder_path = 'Test'  # Update this to the path of your Test folder
 
-w_0, w_1, p_1, w_2, p_0 = 0.4, 2.7, 1.5, 0.27, 1.2
+w_0, w_1, p_1, w_2, p_0 = 0.4, 2.7, 1.5, 0.27, 1.0
 # Traverse the directory and process each .osu file
 for root, dirs, files in os.walk(folder_path):
     for file in files:
