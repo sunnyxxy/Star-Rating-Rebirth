@@ -8,7 +8,7 @@ import bisect
 import math
 
 def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
-    lambda_n = 4
+    lambda_n = 5
     lambda_1 = 0.11
     lambda_3 = 24
     p = osu_parser.parser(file_path)
@@ -88,6 +88,9 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
 
 
     # Section 2.3
+    def jackNerfer(delta):
+        return 1 - 7 * 10**(-5) * (0.15+abs(delta - 0.08))**(-4)
+
     J_ks=[[0 for _ in range(T)] for _ in range(K)]
     delta_ks=[[10**9 for _ in range(T)] for _ in range(K)]
     for k in range(K):
@@ -96,7 +99,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             val = delta**(-1)*(delta+lambda_1*x**(1/4))**(-1)
             for s in range(note_seq_by_column[k][i][1], note_seq_by_column[k][i+1][1]):
                 delta_ks[k][s]=delta
-                J_ks[k][s]=val
+                J_ks[k][s]=val * jackNerfer(delta)
 
     Jbar_ks = [[0 for _ in range(T)] for _ in range(K)]
 
@@ -110,8 +113,9 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
         for i in range(K):
             Jbar_ks_vals.append(Jbar_ks[i][s])
             weights.append(1/delta_ks[i][s])
-        weighted_avg = (sum((val ** lambda_n) * weight for val, weight in zip(Jbar_ks_vals, weights))/max(10**(-9),sum(weights)))**(1/lambda_n)
+        weighted_avg = (sum((max(val, 0) ** lambda_n) * weight for val, weight in zip(Jbar_ks_vals, weights))/max(10**(-9),sum(weights)))**(1/lambda_n)
         Jbar.append(weighted_avg)
+
 
     # Section 2.4
     X_ks=[[0 for _ in range(T)] for _ in range(K+1)]
@@ -147,6 +151,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
 
     Xbar = smooth(X)
 
+
     # Section 2.5
     P = [0 for _ in range(T)]
     LN_bodies = np.zeros(T)
@@ -156,8 +161,11 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
         LN_bodies[t1:t] += 1
 
     def b(delta):
-        if 180<15/delta<340:
-            return 1 + 0.2*((15/delta) - 180)**3 * ((15/delta) - 340)**6 * 10**(-18)
+        val = 7.5 / delta
+
+        if 160<val<360:
+            return 1 + 1.4 * 10**(-7) * (val - 160) * (val - 360)**2
+
         return 1
 
     for i in range(len(note_seq)-1):
@@ -179,18 +187,45 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             
 
     # Section 2.6
+    # Local Key Usage by Column/Time
+    KU_ks = [[False for _ in range(T)] for _ in range(K)]
+    for (k, h, t) in note_seq:
+        startTime = max(0, h - 500)
+        endTime = 0
+        if (t < 0):
+            endTime = min(h+500, T-1)
+        else:
+            endTime = min(t+500, T-1)
+
+        for s in range(startTime, endTime):
+            KU_ks[k][s] = True;
+
+    # Local Key Usage by Time but as a list of column numbers for each point s in T
+    KU_s_cols = [[k for k in range(K) if KU_ks[k][s]] for s in range(T)]
+
+    # The outer loop is no longer needed here as the columns come from KU_s_cols
     dks = [[0 for _ in range(T)] for _ in range(K-1)]
-    for k in range(K-1):
-        for s in range(T):
-            dks[k][s] =  abs(delta_ks[k][s] - delta_ks[k+1][s]) + max(0, max(delta_ks[k+1][s], delta_ks[k][s]) - 0.3)
+    for s in range(T):
+        cols = KU_s_cols[s]
+
+        for i in range(len(cols) - 1):
+            if (cols[i+1] > K - 1):
+                continue
+
+            dks[cols[i]][s] = abs(delta_ks[cols[i]][s] - delta_ks[cols[i+1]][s]) + max(0, max(delta_ks[cols[i+1]][s], delta_ks[cols[i]][s]) - 0.3)
 
     A = [1 for _ in range(T)]
     for s in range(T):
-        for k in range(K-1):
-            if dks[k][s]<0.02:
-                A[s]*=min(0.75 + 0.5*max(delta_ks[k+1][s], delta_ks[k][s]), 1)
-            elif dks[k][s]<0.07:
-                A[s]*=min(0.65 + 5*dks[k][s] + 0.5*max(delta_ks[k+1][s], delta_ks[k][s]), 1)
+        cols = KU_s_cols[s]
+
+        for i in range(len(cols) - 1):
+            if (cols[i+1] > K-1):
+                continue
+
+            if dks[cols[i]][s]<0.02:
+                A[s]*=min(0.75 + 0.5*max(delta_ks[cols[i+1]][s], delta_ks[cols[i]][s]), 1)
+            elif dks[cols[i]][s]<0.07:
+                A[s]*=min(0.65 + 5*dks[cols[i]][s] + 0.5*max(delta_ks[cols[i+1]][s], delta_ks[cols[i]][s]), 1)
             else:
                 pass
 
@@ -236,11 +271,14 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             end += 1
         C[t] = end - start
 
-    df = pd.DataFrame({'Jbar': Jbar, 'Xbar': Xbar, 'Pbar': Pbar, 'Abar': Abar, 'Rbar': Rbar, 'C': C})
+    # Local Key Usage as an integer for each point s in T (the number of columns used, minimum 1)
+    K_s = [max(len([KU_ks[k][s] for k in range(K) if KU_ks[k][s]]), 1) for s in range(T)]
+
+    df = pd.DataFrame({'Jbar': Jbar, 'Xbar': Xbar, 'Pbar': Pbar, 'Abar': Abar, 'Rbar': Rbar, 'C': C, 'Ks': K_s})
     df = df.clip(lower=0)
 
-    df['S'] = ((w_0 * (df['Abar']**(3/K) * df['Jbar'])**1.5) + (1-w_0) * (df['Abar']**(2/3) * (0.8*df['Pbar'] + df['Rbar']))**1.5)**(2/3)
-    df['T'] = (df['Abar']**(3/K)*df['Xbar'])/(df['Xbar']+df['S']+1)
+    df['S'] = ((w_0 * (df['Abar']**(3/df['Ks']) * df['Jbar'])**1.5) + (1-w_0) * (df['Abar']**(2/3) * (0.8*df['Pbar'] + df['Rbar']))**1.5)**(2/3)
+    df['T'] = (df['Abar']**(3/df['Ks'])*df['Xbar'])/(df['Xbar']+df['S']+1)
     df['D'] = w_1*df['S']**(1/2)*df['T']**p_1+df['S']*(w_2)
 
     SR = (sum(df['D']**lambda_n*df['C'])/sum(df['C']))**(1/lambda_n)
@@ -248,7 +286,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     SR *= (len(note_seq)+0.5*len(LN_seq))/(len(note_seq)+0.5*len(LN_seq)+60)
     if SR<=2:
         SR=(SR*2)**0.5
-    SR *= 0.92+0.02*K
+    SR *= 0.96+0.01*K
 
     return SR
     # Visualisation
@@ -259,13 +297,14 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     # plt.plot(df['Rbar'], label='Rbar', marker='o', linewidth=0.5, markersize=1, color='purple')
     # plt.plot(df['S'], label='S', marker='o', linewidth=0.5, markersize=4)
     plt.plot(df['D'], label='D', marker='o', linewidth=0.5, markersize=2, color='orange')
+    plt.plot(df['Ks'], label='Ks', marker='o', linewidth=0.5, markersize=2, color='red')
 
 
     ax1 = plt.gca()
-    # ax2 = ax1.twinx()
-    # ax2.plot(df['Abar'], label='Abar (Right Axis)', color='r', marker='o', linewidth=0.5, markersize=1)
+    ax2 = ax1.twinx()
+    ax2.plot(df['Abar'], label='Abar (Right Axis)', color='r', marker='o', linewidth=0.5, markersize=1)
     # Set the limits for the secondary y-axis
-    # ax2.set_ylim(0, 1)
+    ax2.set_ylim(0, 1)
 
     # Adding titles and labels
     plt.title('Difficulty Plot')
