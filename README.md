@@ -5,7 +5,10 @@ The algorithm paper (.pdf file) is slightly outdated. These are the modification
 4. Use local key-count (which calculates the number of non-empty columns in the window) in certain calculations;
 5. Ignore locally empty columns for Unevenness.
 
-Other files are all up-to-date. 
+Updates on Feb 2, 2025:
+1. Increase StreamBooster to 2.7e-7;
+2. Change (lambda_2, lambda_4) to (6, 0.8);
+3. Incorporate difficulty at percentile points in final SR calculation.
 
 Steps to use this program:
 1. Create a Test folder next to the python files;
