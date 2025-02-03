@@ -360,7 +360,7 @@ namespace Malody.Chart
             {
                 double val = 7.5 / delta;
                 if (val > 160 && val < 360)
-                    return 1 + 2.7e-7 * (val - 160) * Math.Pow(val - 360, 2);
+                    return 1 + 1.7e-7 * (val - 160) * Math.Pow(val - 360, 2);
                 return 1.0;
             };
 
@@ -492,7 +492,7 @@ namespace Malody.Chart
                     int k0 = cols[j];
                     int k1 = cols[j + 1];
                     dks[k0][i] = Math.Abs(delta_ks[k0][i] - delta_ks[k1][i]) +
-                                Math.Max(0, Math.Max(delta_ks[k0][i], delta_ks[k1][i]) - 0.3);
+                                0.4 * Math.Max(0, Math.Max(delta_ks[k0][i], delta_ks[k1][i]) - 0.11);
                 }
             }
 
@@ -681,7 +681,8 @@ namespace Malody.Chart
             SR *= totalNotes / (totalNotes + 60);
             if (SR <= 2)
                 SR = Math.Sqrt(SR * 2);
-
+            
+            SR *= 1 - 0.0075*keyCount;
             return StarToLevel(SR);
         }
 
