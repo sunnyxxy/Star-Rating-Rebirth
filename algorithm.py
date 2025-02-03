@@ -254,7 +254,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
            For a given delta, if 7.5/delta lies in (160, 360), adjust the value."""
         val = 7.5 / delta
         if 160 < val < 360:
-            return 1 + 2.7e-7 * (val - 160) * (val - 360)**2
+            return 1 + 1.7e-7 * (val - 160) * (val - 360)**2
         return 1
     
     # Prepare the unsmoothed step function for P on the base grid.
@@ -313,7 +313,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             k0 = cols[j]
             k1 = cols[j+1]
             # Use the delta_ks computed before on base_corners
-            dks[k0][i] = abs(delta_ks[k0][i] - delta_ks[k1][i]) + max(0, max(delta_ks[k0][i], delta_ks[k1][i]) - 0.3)
+            dks[k0][i] = abs(delta_ks[k0][i] - delta_ks[k1][i]) + 0.4*max(0, max(delta_ks[k0][i], delta_ks[k1][i]) - 0.11)
     
     # Now compute A (unsmoothed) on A_corners (because the active regions for A vary on ±500; hence Abar becomes
     # piecewise linear with corners at ±1000 relative to note boundaries).
@@ -468,7 +468,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     if SR <= 2:
         SR = (SR * 2)**0.5
         
-    SR *= (0.96 + 0.01 * K)
+    SR *= 0.97
     return SR
     
     # --- Optionally: interpolate all variables from all_corners to full resolution ---
