@@ -381,7 +381,7 @@ namespace Malody.Chart
 
                 if (delta_time < 1e-9)
                 {
-                    // Handle Dirac delta spikes when consecutive notes have (nearly) identical times.
+                    // Handle Dirac delta spikes when consecutive notes have identical times.
                     // Find the base corner exactly equal to h_l (using binary search is acceptable here)
                     int idx = Array.BinarySearch(baseCorners, (double)h_l);
                     if (idx < 0)
