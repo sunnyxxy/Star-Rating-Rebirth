@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "star-rating-rebirth"
+version = "0.1.0"
+description = ""
+authors = ["U1d <u1dric3@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.14"
+pandas = "^2.2.3"
+
+
+[tool.poetry.group.dev.dependencies]
+matplotlib = "^3.10.0"
+jupyter = "^1.1.1"
+
+
+[tool.poetry.group.pyinstaller.dependencies]
+pyinstaller = "^6.11.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
