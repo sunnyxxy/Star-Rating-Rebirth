@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "star-rating-rebirth-u1d-test"
+name = "star-rating-rebirth"
 version = "0.1.0"
 description = ""
 authors = ["U1d <u1dric3@gmail.com>"]
