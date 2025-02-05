@@ -2,7 +2,7 @@ import osu_file_parser as osu_parser
 from collections import defaultdict
 import numpy as np
 import heapq
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import pandas as pd
 import bisect
 import math
