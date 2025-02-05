@@ -4,12 +4,19 @@ on:
   push:
     branches: [ "main" ]
 
+# 1. Grant write access to repository contents.
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # 2. Ensure we have full history for tagging
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -57,8 +64,8 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "Tagging version: $VERSION"
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag $VERSION
           git push origin $VERSION
 
