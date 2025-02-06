@@ -346,16 +346,17 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     I_arr = np.zeros(len(base_corners))
     R_step = np.zeros(len(base_corners))
     # For each pair of successive long notes (tail_seq), assign I and R on the interval [t_i, t_{i+1})
-    def find_next_note_in_column(note, note_seq_by_column):
+    times_by_column = {i: [note[1] for note in column] 
+                       for i, column in enumerate(note_seq_by_column)}
+    def find_next_note_in_column(note, times):
         k, h, t = note
-        times = [n[1] for n in note_seq_by_column[k]]
         idx = bisect.bisect_left(times, h)
         return note_seq_by_column[k][idx+1] if idx+1 < len(note_seq_by_column[k]) else (0, 10**9, 10**9)
     
     I_list = []
     for i in range(len(tail_seq)):
         k, h_i, t_i = tail_seq[i]
-        _, h_j, _ = find_next_note_in_column((k, h_i, t_i), note_seq_by_column)
+        _, h_j, _ = find_next_note_in_column((k, h_i, t_i), times_by_column[k])
         I_h = 0.001 * abs(t_i - h_i - 80) / x
         I_t = 0.001 * abs(h_j - t_i - 80) / x
         I_list.append(2 / (2 + math.exp(-5*(I_h-0.75)) + math.exp(-5*(I_t-0.75))))
