@@ -330,16 +330,18 @@ namespace Malody.Chart
             for (int i = 0; i < T; i++)
                 LN_bodies[i] = 0.0;
 
-            // For each long note, add contributions in two segments:
-            //   from h to t1, add 0.5;
+            // For each long note, add contributions in three segments:
+            //   from h to t0, add nothing;
+            //   from t0 to t1, add 1.3;
             //   from t1 to t, add 1.0.
             foreach (var note in LNSeq)
             {
                 int h = note.Head;
                 int t = note.Tail;
-                int t1 = Math.Min(h + 80, t);
-                for (int i = h; i < t1; i++)
-                    LN_bodies[i] += 0.5;
+                int t0 = Math.Min(h + 60, t);
+                int t1 = Math.Min(h + 120, t);
+                for (int i = t0; i < t1; i++)
+                    LN_bodies[i] += 1.3;
                 for (int i = t1; i < t; i++)
                     LN_bodies[i] += 1.0;
             }

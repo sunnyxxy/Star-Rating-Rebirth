@@ -237,8 +237,9 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     # Build LN_bodies exactly as in the original.
     LN_bodies = np.zeros(T)
     for (k, h, t) in LN_seq:
-        t1 = min(h + 80, t)
-        LN_bodies[h:t1] += 0.5
+        t0 = min(h + 60, t)
+        t1 = min(h + 120, t)
+        LN_bodies[t0:t1] += 1.3
         LN_bodies[t1:t] += 1
     
     # Compute the cumulative sum for LN_bodies.
