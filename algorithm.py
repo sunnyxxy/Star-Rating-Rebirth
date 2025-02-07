@@ -472,23 +472,3 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
         
     SR *= 0.97
     return SR
-    
-    # --- Optionally: interpolate all variables from all_corners to full resolution ---
-    # full_range = np.arange(T, dtype=float)
-    # df_full = pd.DataFrame({
-    #     'Jbar': interp_values(full_range, all_corners, J_bar),
-    #     'Xbar': interp_values(full_range, all_corners, X_bar),
-    #     'Pbar': interp_values(full_range, all_corners, P_bar),
-    #     'Abar': interp_values(full_range, all_corners, A_bar),
-    #     'Rbar': interp_values(full_range, all_corners, R_bar),
-    #     'C':    step_interp(full_range, all_corners, C_arr),
-    #     'Ks':   step_interp(full_range, all_corners, Ks_arr)
-    # })
-    # df_full = df_full.clip(lower=0)
-    # # Recompute S, T, D at full resolution if desired:
-    # df_full['S'] = ((w_0 * (df_full['Abar']**(3/df_full['Ks']) * df_full['Jbar'])**1.5) +
-    #                 (1-w_0) * (df_full['Abar']**(2/3) * (0.8*df_full['Pbar'] + df_full['Rbar']))**1.5)**(2/3)
-    # df_full['T'] = (df_full['Abar']**(3/df_full['Ks'])*df_full['Xbar'])/(df_full['Xbar']+df_full['S']+1)
-    # df_full['D'] = w_1*df_full['S']**0.5*df_full['T']**p_1+df_full['S']*w_2
-    
-    # return (SR, df_full)
