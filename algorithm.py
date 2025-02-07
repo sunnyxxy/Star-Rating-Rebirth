@@ -94,6 +94,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     
     # Global scaling factor x
     x = 0.3 * ((64.5 - math.ceil(p[5] * 3)) / 500)**0.5
+    x = min(x, 0.6*(x-0.09)+0.09)
     note_seq.sort(key=lambda tup: (tup[1], tup[0]))
     
     # Group notes by column
