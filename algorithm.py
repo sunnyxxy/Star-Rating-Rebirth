@@ -404,7 +404,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     Ks_val = Ks_arr  # local key count
     # Compute S and T as in your original formula:
     S_all = ((w_0 * (A_bar**(3/ Ks_val) * J_bar)**1.5) + 
-             ((1-w_0) * (A_bar**(2/3) * (0.8*P_bar + R_bar))**1.5))**(2/3)
+             ((1-w_0) * (A_bar**(2/3) * (0.8*P_bar + Rbar*35/(C_arr+8)))**1.5))**(2/3)
     T_all = (A_bar**(3/ Ks_val) * X_bar) / (X_bar + S_all + 1)
     D_all = w_1 * (S_all**0.5) * (T_all**p_1) + S_all * w_2
     
