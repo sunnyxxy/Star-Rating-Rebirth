@@ -467,8 +467,8 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     
     total_notes = len(note_seq) + 0.5 * len(LN_seq)
     SR *= total_notes / (total_notes + 60)
-    if SR <= 2:
-        SR = (SR * 2)**0.5
+    # if SR <= 2:
+    #     SR = (SR * 2)**0.5
         
     SR *= 0.97
     return SR
