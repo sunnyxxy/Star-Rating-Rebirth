@@ -67,6 +67,15 @@ def step_interp(new_x, old_x, old_vals):
     indices = np.clip(indices, 0, len(old_vals)-1)
     return old_vals[indices]
     
+def rescale_high(sr):
+    if sr <= 9:
+        return sr
+    if sr <= 10.2:
+        return 9 + (sr - 9) * (1 / 1.2)
+    if sr <= 11.5:
+        return 10 + (sr - 10.2) * (1 / 1.3)
+    return 11 + (sr - 11.5) * (2 / 3)
+    
 # --- Main function ---
 def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     # === Basic Setup and Parsing ===
@@ -471,5 +480,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     # if SR <= 2:
     #     SR = (SR * 2)**0.5
         
+    SR = rescale_high(SR)
     SR *= 0.97
+    
     return SR
