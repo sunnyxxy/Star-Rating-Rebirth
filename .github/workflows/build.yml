@@ -1,8 +1,7 @@
 name: Build and Release Windows Executable
 
 on:
-  push:
-    branches: [ "main" ]
+  workflow_dispatch:
 
 # 1. Grant write access to repository contents.
 permissions:
