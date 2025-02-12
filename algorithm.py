@@ -308,9 +308,9 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     # Mark for each column k, at times in base_corners we record whether that key is “active”
     KU_ks = {k: np.zeros(len(base_corners), dtype=bool) for k in range(K)}
     for (k, h, t) in note_seq:
-        # For each note, active from max(0, h-500) to (h+500) (or t+500 if t>=0)
-        startTime = max(h - 500, 0)
-        endTime = (h + 500) if t < 0 else min(t + 500, T-1)
+        # For each note, active from max(0, h-150) to (h+150) (or t+150 if t>=0)
+        startTime = max(h - 150, 0)
+        endTime = (h + 150) if t < 0 else min(t + 150, T-1)
         idx = np.where((base_corners >= startTime) & (base_corners < endTime))[0]
         KU_ks[k][idx] = True
     # At each time in base_corners, build a list of columns that are active:
@@ -479,7 +479,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     SR *= total_notes / (total_notes + 60)
     # if SR <= 2:
     #     SR = (SR * 2)**0.5
-        
+
     SR = rescale_high(SR)
     SR *= 0.97
     
