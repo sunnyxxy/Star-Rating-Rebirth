@@ -442,15 +442,15 @@ namespace Malody.Chart
             }
 
             // For each key, mark baseCorners that lie within the “active” interval for each note.
-            // The active interval for a note is [max(note.Head - 500, 0), (note.Tail < 0 ? note.Head + 500 : min(note.Tail + 500, T - 1))).
+            // The active interval for a note is [max(note.Head - 150, 0), (note.Tail < 0 ? note.Head + 150 : min(note.Tail + 150, T - 1))).
             for (int k = 0; k < keyCount; k++)
             {
                 // Get the note sequence for key k.
                 List<Note> notes = noteSeqByColumn[k];
                 foreach (var note in notes)
                 {
-                    int activeStart = Math.Max(note.Head - 500, 0);
-                    int activeEnd = (note.Tail < 0) ? (note.Head + 500) : Math.Min(note.Tail + 500, T - 1);
+                    int activeStart = Math.Max(note.Head - 150, 0);
+                    int activeEnd = (note.Tail < 0) ? (note.Head + 150) : Math.Min(note.Tail + 150, T - 1);
                     // Use binary search to find the first baseCorner >= activeStart.
                     int startIdx = Array.BinarySearch(baseCorners, (double)activeStart);
                     if (startIdx < 0)
