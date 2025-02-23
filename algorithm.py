@@ -251,6 +251,8 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
         t1 = min(h + 120, t)
         LN_bodies[t0:t1] += 1.3
         LN_bodies[t1:t] += 1
+
+    LN_bodies=np.minimum(LN_bodies, 2.5+0.5*LN_bodies)
     
     # Compute the cumulative sum for LN_bodies.
     # cumsum_LN[i] = sum(LN_bodies[0] ... LN_bodies[i-1])
