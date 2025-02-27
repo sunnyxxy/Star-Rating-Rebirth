@@ -242,9 +242,9 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
         for i in range(1, len(notes_in_pair)):
             start = notes_in_pair[i-1][1]
             end = notes_in_pair[i][1]
-            idx = np.where((base_corners >= start) & (base_corners < end))[0]
-            idx_start = np.where(base_corners == start)[0][0]
-            idx_end = np.where(base_corners == end)[0][0]
+            idx_start = np.searchsorted(base_corners, start, side='left')
+            idx_end = np.searchsorted(base_corners, end, side='left')
+            idx = np.arange(idx_start, idx_end)
             if len(idx) == 0:
                 continue
             delta = 0.001 * (notes_in_pair[i][1] - notes_in_pair[i-1][1])
