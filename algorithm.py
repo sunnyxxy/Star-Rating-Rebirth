@@ -158,6 +158,18 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     all_corners = np.array(all_corners, dtype=float)
     base_corners = np.array(corners_base, dtype=float)
     A_corners = np.array(corners_A, dtype=float)
+
+    # Compute local key usage.
+    # Mark for each column k, at times in base_corners we record whether that key is “active”
+    KU_ks = {k: np.zeros(len(base_corners), dtype=bool) for k in range(K)}
+    for (k, h, t) in note_seq:
+        # For each note, active from max(0, h-150) to (h+150) (or t+150 if t>=0)
+        startTime = max(h - 150, 0)
+        endTime = (h + 150) if t < 0 else min(t + 150, T-1)
+        idx = np.where((base_corners >= startTime) & (base_corners < endTime))[0]
+        KU_ks[k][idx] = True
+    # At each time in base_corners, build a list of columns that are active:
+    KU_s_cols = [ [k for k in range(K) if KU_ks[k][i]] for i in range(len(base_corners)) ]
     
     # === Section 2.3: Compute Jbar ===
     # For each column, the unsmoothed “J” is constant on segments between consecutive notes.
@@ -218,6 +230,8 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
         [0.325, 0.55, 0.45, 0.35, 0.25, 0.05, 0.25, 0.35, 0.45, 0.55, 0.325]
     ]
     X_ks = {k: np.zeros(len(base_corners)) for k in range(K+1)}
+
+    cross_coeff = cross_matrix[K]
     for k in range(K+1):
         if k == 0:
             notes_in_pair = note_seq_by_column[0]
@@ -229,13 +243,15 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             start = notes_in_pair[i-1][1]
             end = notes_in_pair[i][1]
             idx = np.where((base_corners >= start) & (base_corners < end))[0]
+            idx_start = np.where(base_corners == start)[0][0]
+            idx_end = np.where(base_corners == end)[0][0]
             if len(idx) == 0:
                 continue
             delta = 0.001 * (notes_in_pair[i][1] - notes_in_pair[i-1][1])
             val = 0.16 * max(x, delta)**(-2)
+            if ((k - 1) not in KU_s_cols[idx_start] or (k - 1) not in KU_s_cols[idx_end]) or (k not in KU_s_cols[idx_start] or k not in KU_s_cols[idx_end]):
+                val*=(1-cross_coeff[k])
             X_ks[k][idx] = val
-    # Combine using cross_matrix coefficients for column K:
-    cross_coeff = cross_matrix[K]
     X_base = np.zeros(len(base_corners))
     for i in range(len(base_corners)):
         X_base[i] = sum(X_ks[k][i] * cross_coeff[k] for k in range(K+1))
@@ -306,19 +322,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     Pbar = interp_values(all_corners, base_corners, Pbar_base)
 
     # === Section 2.6: Compute Abar ===
-    # For A, the unsmoothed value depends on local key usage.
-    # Mark for each column k, at times in base_corners we record whether that key is “active”
-    KU_ks = {k: np.zeros(len(base_corners), dtype=bool) for k in range(K)}
-    for (k, h, t) in note_seq:
-        # For each note, active from max(0, h-150) to (h+150) (or t+150 if t>=0)
-        startTime = max(h - 150, 0)
-        endTime = (h + 150) if t < 0 else min(t + 150, T-1)
-        idx = np.where((base_corners >= startTime) & (base_corners < endTime))[0]
-        KU_ks[k][idx] = True
-    # At each time in base_corners, build a list of columns that are active:
-    KU_s_cols = [ [k for k in range(K) if KU_ks[k][i]] for i in range(len(base_corners)) ]
-    
-    # Also compute a “difference” measure dks between adjacent columns.
+    # Compute a “difference” measure dks between adjacent columns.
     dks = {k: np.zeros(len(base_corners)) for k in range(K-1)}
     for i in range(len(base_corners)):
         cols = KU_s_cols[i]
@@ -483,6 +487,6 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     #     SR = (SR * 2)**0.5
 
     SR = rescale_high(SR)
-    SR *= 0.97
+    SR *= 0.975
     
     return SR
