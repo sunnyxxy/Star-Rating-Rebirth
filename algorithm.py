@@ -249,7 +249,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
                 continue
             delta = 0.001 * (notes_in_pair[i][1] - notes_in_pair[i-1][1])
             val = 0.16 * max(x, delta)**(-2)
-            if ((k - 1) not in KU_s_cols[idx_start] or (k - 1) not in KU_s_cols[idx_end]) or (k not in KU_s_cols[idx_start] or k not in KU_s_cols[idx_end]):
+            if ((k - 1) not in KU_s_cols[idx_start] and (k - 1) not in KU_s_cols[idx_end]) or (k not in KU_s_cols[idx_start] and k not in KU_s_cols[idx_end]):
                 val*=(1-cross_coeff[k])
             X_ks[k][idx] = val
     X_base = np.zeros(len(base_corners))
