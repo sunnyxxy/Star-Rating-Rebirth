@@ -161,7 +161,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
 
     # Compute local key usage.
     # Mark for each column k, at times in base_corners we record whether that key is “active”
-    KU_ks = {k: np.zeros(len(base_corners), dtype=bool) for k in range(K)}
+    key_usage = {k: np.zeros(len(base_corners), dtype=bool) for k in range(K)}
     for (k, h, t) in note_seq:
         # For each note, active from max(0, h-150) to (h+150) (or t+150 if t>=0)
         startTime = max(h - 150, 0)
@@ -169,9 +169,40 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
         left_idx = np.searchsorted(base_corners, startTime, side='left')
         right_idx = np.searchsorted(base_corners, endTime, side='left')
         idx = np.arange(left_idx, right_idx)
-        KU_ks[k][idx] = True
+        key_usage[k][idx] = True
     # At each time in base_corners, build a list of columns that are active:
-    KU_s_cols = [ [k for k in range(K) if KU_ks[k][i]] for i in range(len(base_corners)) ]
+    KU_s_cols = [ [k for k in range(K) if key_usage[k][i]] for i in range(len(base_corners)) ]
+
+    key_usage_400 = {k: np.zeros(len(base_corners), dtype=float) for k in range(K)}
+    for (k, h, t) in note_seq:
+        startTime = max(h, 0)
+        endTime = h if t < 0 else min(t, T-1)
+        left400_idx = np.searchsorted(base_corners, startTime - 400, side='left')
+        left_idx = np.searchsorted(base_corners, startTime, side='left')
+        right_idx = np.searchsorted(base_corners, endTime, side='left')
+        right400_idx = np.searchsorted(base_corners, endTime + 400, side='left')
+        idx = np.arange(left_idx, right_idx)
+        key_usage_400[k][idx] += 3.75 + np.minimum(endTime - startTime, 1500)/150
+        idx = np.arange(left400_idx, left_idx)
+        key_usage_400[k][idx] += 3.75 - 3.75/400**2*(base_corners[idx] - np.array(startTime))**2
+        idx = np.arange(right_idx, right400_idx)
+        key_usage_400[k][idx] += 3.75 - 3.75/400**2*np.abs(base_corners[idx] - np.array(endTime))**2
+        
+    anchor = np.zeros(len(base_corners))
+    for idx in range(len(base_corners)):
+        # Collect the counts for each group at this base corner
+        counts = np.array([key_usage_400[k][idx] for k in range(K)])
+        counts[::-1].sort() # e.g.  8, 5, 2, 2, 0
+        nonzero_counts = counts[counts != 0]
+        # if idx==100:
+        #     print(nonzero_counts)
+        if nonzero_counts.size > 1:
+            walk = np.sum(nonzero_counts[:-1]*(1-4*(0.5-nonzero_counts[1:]/nonzero_counts[:-1])**2))
+            max_walk = np.sum(nonzero_counts[:-1])
+            anchor[idx] = walk/max_walk
+        else:
+            anchor[idx] = 0
+    anchor = 1 + np.minimum(anchor-0.18, 5*(anchor-0.22)**3)
     
     # === Section 2.3: Compute Jbar ===
     # For each column, the unsmoothed “J” is constant on segments between consecutive notes.
@@ -355,7 +386,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             inc = delta**(-1) * (0.08 * x**(-1) * (1 - lambda_3 * x**(-1) * (delta - x/2)**2))**(1/4) * b_val * v
         else:
             inc = delta**(-1) * (0.08 * x**(-1) * (1 - lambda_3 * x**(-1) * (x/6)**2))**(1/4) * b_val * v
-        P_step[idx] += inc
+        P_step[idx] += np.minimum(inc * anchor[idx], np.maximum(inc, inc*2-10))
     
     # Smooth the unsmoothed P_step over a ±500 window (using cumulative–sum integration).
     Pbar_base = smooth_on_corners(base_corners, P_step, window=500, scale=0.001, mode='sum')
@@ -444,7 +475,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     C_arr = step_interp(all_corners, base_corners, C_base)
     
     # Ks: local key usage count (minimum 1)
-    Ks_step = np.array([max(sum(1 for k in range(K) if KU_ks[k][i]), 1) for i in range(len(base_corners))])
+    Ks_step = np.array([max(sum(1 for k in range(K) if key_usage[k][i]), 1) for i in range(len(base_corners))])
     Ks_base = Ks_step
     Ks_arr = step_interp(all_corners, base_corners, Ks_base)
     
@@ -519,7 +550,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     SR = (0.88 * percentile_93) * 0.25 + (0.94 * percentile_83) * 0.2 + weighted_mean * 0.55
     SR = SR**(p_0) / (8**p_0) * 8
     
-    total_notes = len(note_seq) + 0.5 * len(LN_seq)
+    total_notes = len(note_seq) + 0.5*sum(np.minimum((t-h), 1000)/200 for (k, h, t) in LN_seq)
     SR *= total_notes / (total_notes + 60)
 
     SR = rescale_high(SR)
