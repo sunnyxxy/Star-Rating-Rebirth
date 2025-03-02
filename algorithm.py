@@ -166,7 +166,9 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
         # For each note, active from max(0, h-150) to (h+150) (or t+150 if t>=0)
         startTime = max(h - 150, 0)
         endTime = (h + 150) if t < 0 else min(t + 150, T-1)
-        idx = np.where((base_corners >= startTime) & (base_corners < endTime))[0]
+        left_idx = np.searchsorted(base_corners, startTime, side='left')
+        right_idx = np.searchsorted(base_corners, endTime, side='left')
+        idx = np.arange(left_idx, right_idx)
         KU_ks[k][idx] = True
     # At each time in base_corners, build a list of columns that are active:
     KU_s_cols = [ [k for k in range(K) if KU_ks[k][i]] for i in range(len(base_corners)) ]
@@ -185,7 +187,9 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             start = notes[i][1]
             end = notes[i+1][1]
             # Find indices in base_corners that lie in [start, end)
-            idx = np.where((base_corners >= start) & (base_corners < end))[0]
+            left_idx = np.searchsorted(base_corners, start, side='left')
+            right_idx = np.searchsorted(base_corners, end, side='left')
+            idx = np.arange(left_idx, right_idx)
             if len(idx) == 0:
                 continue
             delta = 0.001 * (end - start)
@@ -258,29 +262,62 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     # Smooth X_base with the same ±500, scale 0.001.
     Xbar_base = smooth_on_corners(base_corners, X_base, window=500, scale=0.001, mode='sum')
     Xbar = interp_values(all_corners, base_corners, Xbar_base)
-    
-    # === Section 2.5: Compute Pbar ===
-    # Build LN_bodies exactly as in the original.
-    LN_bodies = np.zeros(T)
-    for (k, h, t) in LN_seq:
-        t0 = min(h + 60, t)
-        t1 = min(h + 120, t)
-        LN_bodies[t0:t1] += 1.3
-        LN_bodies[t1:t] += 1
 
-    LN_bodies=np.minimum(LN_bodies, 2.5+0.5*LN_bodies)
+    # === Section 2.5: Compute Pbar ===
+    def LN_bodies_count_sparse_representation(LN_seq, T):
+        diff = {}  # dictionary: index -> change in LN_bodies (before transformation)
     
-    # Compute the cumulative sum for LN_bodies.
-    # cumsum_LN[i] = sum(LN_bodies[0] ... LN_bodies[i-1])
-    cumsum_LN = np.concatenate(([0], np.cumsum(LN_bodies)))
+        for (k, h, t) in LN_seq:
+            t0 = min(h + 60, t)
+            t1 = min(h + 120, t)
+            diff[t0] = diff.get(t0, 0) + 1.3
+            diff[t1] = diff.get(t1, 0) + (-1.3 + 1)  # net change at t1: -1.3 from first part, then +1
+            diff[t]  = diff.get(t, 0) - 1
     
-    def LN_sum(a, b):
-        """Return the exact sum over LN_bodies[a:b]."""
-        return cumsum_LN[b] - cumsum_LN[a]
+        # The breakpoints are the times where changes occur.
+        # Also include 0 and T.
+        points = sorted(set([0, T] + list(diff.keys())))
+        
+        # Build piecewise constant values (after transformation) and a cumulative sum.
+        values = []
+        cumsum = [0]  # cumulative sum at the breakpoints
+        curr = 0.0
+    
+        for i in range(len(points) - 1):
+            t = points[i]
+            # If there is a change at t, update the running value.
+            if t in diff:
+                curr += diff[t]
+
+            v = min(curr, 2.5 + 0.5 * curr)
+            values.append(v)
+            # Compute cumulative sum on the interval [points[i], points[i+1])
+            seg_length = points[i+1] - points[i]
+            cumsum.append(cumsum[-1] + seg_length * v)
+        return points, cumsum, values
+    
+    # Build the sparse representation once.
+    points, cumsum, values = LN_bodies_count_sparse_representation(LN_seq, T)
+    
+    def LN_sum(a, b, points=points, cumsum=cumsum, values=values):
+        # Locate the segments that contain a and b.
+        i = bisect.bisect_right(points, a) - 1
+        j = bisect.bisect_right(points, b) - 1
+    
+        total = 0.0
+        if i == j:
+            # Both a and b lie in the same segment.
+            total = (b - a) * values[i]
+        else:
+            # First segment: from a to the end of the i-th segment.
+            total += (points[i+1] - a) * values[i]
+            # Full segments between i+1 and j-1.
+            total += cumsum[j] - cumsum[i+1]
+            # Last segment: from start of segment j to b.
+            total += (b - points[j]) * values[j]
+        return total
     
     def b_func(delta):
-        """Implements the Dirac delta multiplier function.
-           For a given delta, if 7.5/delta lies in (160, 360), adjust the value."""
         val = 7.5 / delta
         if 160 < val < 360:
             return 1 + 1.7e-7 * (val - 160) * (val - 360)**2
@@ -296,13 +333,17 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             # Dirac delta case: when notes occur at the same time.
             # Add the spike exactly at the note head in the base grid.
             spike = 1000 * (0.02 * (4 / x - lambda_3))**(1/4)
-            idx = np.where(base_corners == h_l)[0]
+            left_idx = np.searchsorted(base_corners, h_l, side='left')
+            right_idx = np.searchsorted(base_corners, h_l, side='right')
+            idx = np.arange(left_idx, right_idx)
             if len(idx) > 0:
                 P_step[idx] += spike
             # Continue so that we add a spike for each adjacent note pair at the same time.
             continue
         # For the regular case where delta_time > 0, identify the base grid indices in [h_l, h_r)
-        idx = np.where((base_corners >= h_l) & (base_corners < h_r))[0]
+        left_idx = np.searchsorted(base_corners, h_l, side='left')
+        right_idx = np.searchsorted(base_corners, h_r, side='left')
+        idx = np.arange(left_idx, right_idx)
         if len(idx) == 0:
             continue
         delta = 0.001 * delta_time
@@ -332,13 +373,8 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             # Use the delta_ks computed before on base_corners
             dks[k0][i] = abs(delta_ks[k0][i] - delta_ks[k1][i]) + 0.4*max(0, max(delta_ks[k0][i], delta_ks[k1][i]) - 0.11)
     
-    # Now compute A (unsmoothed) on A_corners (because the active regions for A vary on ±500; hence Abar becomes
-    # piecewise linear with corners at ±1000 relative to note boundaries).
     A_step = np.ones(len(A_corners))
-    # We “lift” A_step by scanning through A_corners: for each A_corners value, use the same logic as above,
-    # but we need to know which columns are active at time s.
-    # We use linear interpolation from the base_corners’ KU info.
-    # (Here we simply approximate: we compute KU at time s by checking nearest base corner.)
+    
     for i, s in enumerate(A_corners):
         # Find the nearest index in base_corners:
         idx = np.searchsorted(base_corners, s)
@@ -382,7 +418,9 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     for i in range(len(tail_seq)-1):
         t_start = tail_seq[i][2]
         t_end = tail_seq[i+1][2]
-        idx = np.where((base_corners >= t_start) & (base_corners < t_end))[0]
+        left_idx = np.searchsorted(base_corners, t_start, side='left')
+        right_idx = np.searchsorted(base_corners, t_end, side='left')
+        idx = np.arange(left_idx, right_idx)
         if len(idx) == 0:
             continue
         I_arr[idx] = 1 + I_list[i]
@@ -483,8 +521,6 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     
     total_notes = len(note_seq) + 0.5 * len(LN_seq)
     SR *= total_notes / (total_notes + 60)
-    # if SR <= 2:
-    #     SR = (SR * 2)**0.5
 
     SR = rescale_high(SR)
     SR *= 0.975
