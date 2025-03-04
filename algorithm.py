@@ -266,6 +266,7 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
     ]
     X_ks = {k: np.zeros(len(base_corners)) for k in range(K+1)}
 
+    fast_cross = {k: np.zeros(len(base_corners)) for k in range(K+1)}
     cross_coeff = cross_matrix[K]
     for k in range(K+1):
         if k == 0:
@@ -287,9 +288,10 @@ def calculate(file_path, mod, lambda_2, lambda_4, w_0, w_1, p_1, w_2, p_0):
             if ((k - 1) not in KU_s_cols[idx_start] and (k - 1) not in KU_s_cols[idx_end]) or (k not in KU_s_cols[idx_start] and k not in KU_s_cols[idx_end]):
                 val*=(1-cross_coeff[k])
             X_ks[k][idx] = val
+            fast_cross[k][idx] = max(0, 0.4*max(delta, 0.06, 0.75*x)**(-2) - 80)
     X_base = np.zeros(len(base_corners))
     for i in range(len(base_corners)):
-        X_base[i] = sum(X_ks[k][i] * cross_coeff[k] for k in range(K+1))
+        X_base[i] = sum(X_ks[k][i] * cross_coeff[k] for k in range(K+1)) + sum(np.sqrt(fast_cross[k][i]*cross_coeff[k]*fast_cross[k+1][i]*cross_coeff[k+1]) for k in range(0, K))
     # Smooth X_base with the same ±500, scale 0.001.
     Xbar_base = smooth_on_corners(base_corners, X_base, window=500, scale=0.001, mode='sum')
     Xbar = interp_values(all_corners, base_corners, Xbar_base)
