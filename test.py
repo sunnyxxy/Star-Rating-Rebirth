@@ -9,5 +9,5 @@ for root, dirs, files in os.walk(folder_path):
     for file in files:
         if file.endswith('.osu'):
             file_path = os.path.join(root, file)
-            result = algorithm.calculate(file_path, 'NM', 6, 0.8, w_0, w_1, p_1, w_2, p_0)
+            result = algorithm.calculate(file_path, 'NM')
             print(file, "|", f'{result:.4f}')
