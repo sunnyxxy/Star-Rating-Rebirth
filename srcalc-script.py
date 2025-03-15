@@ -44,11 +44,10 @@ def main():
     mod = args.mod
     print(f"Dir: {folder_path}, Mod: {mod}\n")
 
-    w_0, w_1, p_1, w_2, p_0 = 0.4, 2.7, 1.5, 0.27, 1.0
     while True:
         for file in Path(folder_path).iterdir():
             if file.suffix == ".osu":
-                result = algorithm.calculate(file, mod, 6, 0.8, w_0, w_1, p_1, w_2, p_0)
+                result = algorithm.calculate(file, mod)
                 print(f"({mod}) {file.stem} | {result:.4f}")
         try:
             input("SR calculation completed. Press Enter to run again or 'Ctrl+C' to exit.")

@@ -403,8 +403,8 @@ def compute_Abar(K, T, x, note_seq_by_column, active_columns, delta_ks, A_corner
             elif d_val < 0.07:
                 A_step[i] *= min(0.65 + 5*d_val + 0.5 * max(delta_ks[k0][idx], delta_ks[k1][idx]), 1)
             # Otherwise leave A_step[i] unchanged.
-    # Smooth A_step with average smoothing (smooth2) using ±500:
-    Abar = smooth_on_corners(A_corners, A_step, window=500, mode='avg')
+
+    Abar = smooth_on_corners(A_corners, A_step, window=250, mode='avg')
     return Abar
 
 def compute_Rbar(K, T, x, note_seq_by_column, tail_seq, base_corners):    
