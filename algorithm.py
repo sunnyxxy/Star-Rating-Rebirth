@@ -69,11 +69,7 @@ def step_interp(new_x, old_x, old_vals):
 def rescale_high(sr):
     if sr <= 9:
         return sr
-    if sr <= 10.2:
-        return 9 + (sr - 9) * (1 / 1.2)
-    if sr <= 11.5:
-        return 10 + (sr - 10.2) * (1 / 1.3)
-    return 11 + (sr - 11.5) * (2 / 3)
+    return 9 + (sr - 9) * (1 / 1.2)
 
 def find_next_note_in_column(note, times, note_seq_by_column):
     k, h, t = note
@@ -492,7 +488,7 @@ def calculate(file_path, mod):
     
     # === Final Computations ===
     # Compute Difficulty D on all_corners:
-    S_all = ((0.4 * (Abar**(3/ Ks_arr) * Jbar)**1.5) + 
+    S_all = ((0.4 * (Abar**(3/ Ks_arr) * np.minimum(Jbar, 8+0.85*Jbar))**1.5) + 
              ((1-0.4) * (Abar**(2/3) * (0.8*Pbar + Rbar*35/(C_arr+8)))**1.5))**(2/3)
     T_all = (Abar**(3/ Ks_arr) * Xbar) / (Xbar + S_all + 1)
     D_all = 2.7 * (S_all**0.5) * (T_all**1.5) + S_all * 0.27
