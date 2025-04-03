@@ -365,9 +365,9 @@ def compute_Pbar(K, T, x, note_seq, LN_rep, anchor, base_corners):
         v = 1 + 6 * 0.001 * LN_sum(h_l, h_r, LN_rep)
         b_val = stream_booster(delta)
         if delta < 2 * x / 3:
-            inc = delta**(-1) * (0.08 * x**(-1) * (1 - 24 * x**(-1) * (delta - x/2)**2))**(1/4) * b_val * v
+            inc = delta**(-1) * (0.08 * x**(-1) * (1 - 24 * x**(-1) * (delta - x/2)**2))**(1/4) * max(b_val * v)
         else:
-            inc = delta**(-1) * (0.08 * x**(-1) * (1 - 24 * x**(-1) * (x/6)**2))**(1/4) * b_val * v
+            inc = delta**(-1) * (0.08 * x**(-1) * (1 - 24 * x**(-1) * (x/6)**2))**(1/4) * max(b_val * v)
         P_step[idx] += np.minimum(inc * anchor[idx], np.maximum(inc, inc*2-10))
     
     Pbar = smooth_on_corners(base_corners, P_step, window=500, scale=0.001, mode='sum')
